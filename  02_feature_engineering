@@ -1,0 +1,284 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "56afb847-e4ad-4525-b78c-dc629f79ff7f",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Train shape: (844338, 18)\n",
+      "Test shape : (41088, 17)\n"
+     ]
+    }
+   ],
+   "source": [
+    "import pandas as pd\n",
+    "import numpy as np\n",
+    "import warnings\n",
+    "warnings.filterwarnings('ignore')\n",
+    "\n",
+    "train = pd.read_csv('data/train_clean.csv', low_memory=False)\n",
+    "test  = pd.read_csv('data/test_clean.csv',  low_memory=False)\n",
+    "\n",
+    "train['Date'] = pd.to_datetime(train['Date'])\n",
+    "test['Date']  = pd.to_datetime(test['Date'])\n",
+    "\n",
+    "print(\"Train shape:\", train.shape)\n",
+    "print(\"Test shape :\", test.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "42c24fde-61b1-412a-b8ac-f3719baf551d",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "New date columns added:\n",
+      "['Year', 'Month', 'Day', 'WeekOfYear', 'Quarter', 'IsWeekend', 'IsMonthStart', 'IsMonthEnd']\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Extract useful date parts from the Date column\n",
+    "def add_date_features(df):\n",
+    "    df['Year']        = df['Date'].dt.year\n",
+    "    df['Month']       = df['Date'].dt.month\n",
+    "    df['Day']         = df['Date'].dt.day\n",
+    "    df['WeekOfYear']  = df['Date'].dt.isocalendar().week.astype(int)\n",
+    "    df['Quarter']     = df['Date'].dt.quarter\n",
+    "    df['IsWeekend']   = (df['DayOfWeek'] >= 6).astype(int)\n",
+    "    df['IsMonthStart'] = df['Date'].dt.is_month_start.astype(int)\n",
+    "    df['IsMonthEnd']   = df['Date'].dt.is_month_end.astype(int)\n",
+    "    return df\n",
+    "\n",
+    "train = add_date_features(train)\n",
+    "test  = add_date_features(test)\n",
+    "\n",
+    "print(\"New date columns added:\")\n",
+    "print(['Year','Month','Day','WeekOfYear','Quarter',\n",
+    "       'IsWeekend','IsMonthStart','IsMonthEnd'])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "e2232218-39bc-4496-be19-888e5507b075",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "CompetitionOpen sample:\n",
+      "count    844338.000000\n",
+      "mean       7731.474911\n",
+      "std       11229.439988\n",
+      "min           0.000000\n",
+      "25%          29.000000\n",
+      "50%          91.000000\n",
+      "75%       24163.000000\n",
+      "max       24187.000000\n",
+      "Name: CompetitionOpen, dtype: float64\n"
+     ]
+    }
+   ],
+   "source": [
+    "# How many months has the nearest competitor been open?\n",
+    "def add_competition_age(df):\n",
+    "    df['CompetitionOpen'] = (\n",
+    "        12 * (df['Year'] - df['CompetitionOpenSinceYear']) +\n",
+    "        (df['Month'] - df['CompetitionOpenSinceMonth'])\n",
+    "    )\n",
+    "    # If no competitor data, set to 0\n",
+    "    df['CompetitionOpen'] = df['CompetitionOpen'].apply(\n",
+    "        lambda x: x if x > 0 else 0)\n",
+    "    return df\n",
+    "\n",
+    "train = add_competition_age(train)\n",
+    "test  = add_competition_age(test)\n",
+    "\n",
+    "print(\"CompetitionOpen sample:\")\n",
+    "print(train['CompetitionOpen'].describe())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "65b8fc71-89b2-4059-8b5c-add20018e55a",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Promo2 active distribution:\n",
+      "IsPromo2Active\n",
+      "0    699125\n",
+      "1    145213\n",
+      "Name: count, dtype: int64\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Is Promo2 currently active for this store on this date?\n",
+    "month_map = {'Jan':1,'Feb':2,'Mar':3,'Apr':4,'May':5,'Jun':6,\n",
+    "             'Jul':7,'Aug':8,'Sep':9,'Sept':9,'Oct':10,'Nov':11,'Dec':12}\n",
+    "\n",
+    "def is_promo2_active(row):\n",
+    "    if row['Promo2'] == 0:\n",
+    "        return 0\n",
+    "    if row['PromoInterval'] == 'None':\n",
+    "        return 0\n",
+    "    try:\n",
+    "        months = [month_map[m] for m in row['PromoInterval'].split(',')]\n",
+    "        if row['Month'] in months:\n",
+    "            return 1\n",
+    "        return 0\n",
+    "    except:\n",
+    "        return 0\n",
+    "\n",
+    "train['IsPromo2Active'] = train.apply(is_promo2_active, axis=1)\n",
+    "test['IsPromo2Active']  = test.apply(is_promo2_active, axis=1)\n",
+    "\n",
+    "print(\"Promo2 active distribution:\")\n",
+    "print(train['IsPromo2Active'].value_counts())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "d546481b-dc8c-4a1d-ac73-0b1000142622",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Store stats added:\n",
+      "   Store  StoreMeanSales  StoreMedianSales  StoreStdSales\n",
+      "0      1     4759.096031            4647.0    1012.106393\n",
+      "1      2     4953.900510            4783.0    1610.149102\n",
+      "2      3     6942.568678            6619.0    2193.383804\n",
+      "3      4     9638.401786            9430.5    1936.031881\n",
+      "4      5     4676.274711            4616.0    1765.745628\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Encode each store's average sales behaviour\n",
+    "store_stats = train.groupby('Store')['Sales'].agg(\n",
+    "    StoreMeanSales   = 'mean',\n",
+    "    StoreMedianSales = 'median',\n",
+    "    StoreStdSales    = 'std'\n",
+    ").reset_index()\n",
+    "\n",
+    "train = train.merge(store_stats, on='Store', how='left')\n",
+    "test  = test.merge(store_stats, on='Store', how='left')\n",
+    "\n",
+    "print(\"Store stats added:\")\n",
+    "print(train[['Store','StoreMeanSales','StoreMedianSales','StoreStdSales']].head())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "c6b9439c-3293-4765-8e87-a0131b016919",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Encoding done!\n",
+      "   StoreType  Assortment  StateHoliday\n",
+      "0          2           0             0\n",
+      "1          0           0             0\n",
+      "2          0           0             0\n",
+      "3          2           2             0\n",
+      "4          0           0             0\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Convert text categories to numbers for the model\n",
+    "train['StoreType']   = train['StoreType'].map({'a':0,'b':1,'c':2,'d':3})\n",
+    "train['Assortment']  = train['Assortment'].map({'a':0,'b':1,'c':2})\n",
+    "train['StateHoliday'] = train['StateHoliday'].map(\n",
+    "    {'none':0,'public':1,'easter':2,'christmas':3})\n",
+    "\n",
+    "test['StoreType']    = test['StoreType'].map({'a':0,'b':1,'c':2,'d':3})\n",
+    "test['Assortment']   = test['Assortment'].map({'a':0,'b':1,'c':2})\n",
+    "test['StateHoliday'] = test['StateHoliday'].map(\n",
+    "    {'none':0,'public':1,'easter':2,'christmas':3})\n",
+    "\n",
+    "print(\"Encoding done!\")\n",
+    "print(train[['StoreType','Assortment','StateHoliday']].head())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "bc49aa9d-4ea6-43a2-ba4d-083969f7b01f",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Saved train_features.csv and test_features.csv!\n",
+      "Train shape: (844338, 31)\n",
+      "Test shape : (41088, 30)\n",
+      "Total features: 31\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Save the fully featured datasets\n",
+    "train.to_csv('data/train_features.csv', index=False)\n",
+    "test.to_csv('data/test_features.csv', index=False)\n",
+    "\n",
+    "print(\"Saved train_features.csv and test_features.csv!\")\n",
+    "print(\"Train shape:\", train.shape)\n",
+    "print(\"Test shape :\", test.shape)\n",
+    "print(\"Total features:\", train.shape[1])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "e4ace49b-60c7-4d18-992e-a72a6cf02bec",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.14.2"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

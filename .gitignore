@@ -1,0 +1,11 @@
+venv/
+data/train.csv
+data/test.csv
+data/train_clean.csv
+data/test_clean.csv
+data/train_features.csv
+data/test_features.csv
+__pycache__/
+*.pyc
+mlflow.db
+mlruns/

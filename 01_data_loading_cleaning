@@ -1,0 +1,585 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "c31846d0-c5e8-4b7d-b953-ff6f23b3450f",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Libraries loaded successfully!\n"
+     ]
+    }
+   ],
+   "source": [
+    "# All imports we need for this project\n",
+    "import pandas as pd\n",
+    "import numpy as np\n",
+    "import matplotlib.pyplot as plt\n",
+    "import seaborn as sns\n",
+    "import warnings\n",
+    "warnings.filterwarnings('ignore')\n",
+    "\n",
+    "# Display settings\n",
+    "pd.set_option('display.max_columns', 50)\n",
+    "pd.set_option('display.float_format', lambda x: '%.2f' % x)\n",
+    "\n",
+    "print(\"Libraries loaded successfully!\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "ca642845-1cea-4da7-8150-1ff722f0fd96",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "C:\\Users\\Harleen\\rossmann-forecasting\n"
+     ]
+    }
+   ],
+   "source": [
+    "import os\n",
+    "print(os.getcwd())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "c9a517af-5c56-4bc5-8039-a808555c5922",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Train shape: (1017209, 9)\n",
+      "Store shape: (1115, 10)\n",
+      "Test shape : (41088, 8)\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Load all three files\n",
+    "train = pd.read_csv('data/train.csv',\n",
+    "                    dtype={'StateHoliday': str},\n",
+    "                    low_memory=False)\n",
+    "\n",
+    "store = pd.read_csv('data/store.csv')\n",
+    "\n",
+    "test  = pd.read_csv('data/test.csv',\n",
+    "                    dtype={'StateHoliday': str},\n",
+    "                    low_memory=False)\n",
+    "\n",
+    "print(\"Train shape:\", train.shape)\n",
+    "print(\"Store shape:\", store.shape)\n",
+    "print(\"Test shape :\", test.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "1ab0cc70-0dfb-4a5e-a1a1-6e144409204e",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "=== TRAIN ===\n"
+     ]
+    },
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>Store</th>\n",
+       "      <th>DayOfWeek</th>\n",
+       "      <th>Date</th>\n",
+       "      <th>Sales</th>\n",
+       "      <th>Customers</th>\n",
+       "      <th>Open</th>\n",
+       "      <th>Promo</th>\n",
+       "      <th>StateHoliday</th>\n",
+       "      <th>SchoolHoliday</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>1</td>\n",
+       "      <td>5</td>\n",
+       "      <td>2015-07-31</td>\n",
+       "      <td>5263</td>\n",
+       "      <td>555</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>2</td>\n",
+       "      <td>5</td>\n",
+       "      <td>2015-07-31</td>\n",
+       "      <td>6064</td>\n",
+       "      <td>625</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>3</td>\n",
+       "      <td>5</td>\n",
+       "      <td>2015-07-31</td>\n",
+       "      <td>8314</td>\n",
+       "      <td>821</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>4</td>\n",
+       "      <td>5</td>\n",
+       "      <td>2015-07-31</td>\n",
+       "      <td>13995</td>\n",
+       "      <td>1498</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>5</td>\n",
+       "      <td>5</td>\n",
+       "      <td>2015-07-31</td>\n",
+       "      <td>4822</td>\n",
+       "      <td>559</td>\n",
+       "      <td>1</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "   Store  DayOfWeek        Date  Sales  Customers  Open  Promo StateHoliday  \\\n",
+       "0      1          5  2015-07-31   5263        555     1      1            0   \n",
+       "1      2          5  2015-07-31   6064        625     1      1            0   \n",
+       "2      3          5  2015-07-31   8314        821     1      1            0   \n",
+       "3      4          5  2015-07-31  13995       1498     1      1            0   \n",
+       "4      5          5  2015-07-31   4822        559     1      1            0   \n",
+       "\n",
+       "   SchoolHoliday  \n",
+       "0              1  \n",
+       "1              1  \n",
+       "2              1  \n",
+       "3              1  \n",
+       "4              1  "
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "=== STORE ===\n"
+     ]
+    },
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>Store</th>\n",
+       "      <th>StoreType</th>\n",
+       "      <th>Assortment</th>\n",
+       "      <th>CompetitionDistance</th>\n",
+       "      <th>CompetitionOpenSinceMonth</th>\n",
+       "      <th>CompetitionOpenSinceYear</th>\n",
+       "      <th>Promo2</th>\n",
+       "      <th>Promo2SinceWeek</th>\n",
+       "      <th>Promo2SinceYear</th>\n",
+       "      <th>PromoInterval</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>1</td>\n",
+       "      <td>c</td>\n",
+       "      <td>a</td>\n",
+       "      <td>1270.00</td>\n",
+       "      <td>9.00</td>\n",
+       "      <td>2008.00</td>\n",
+       "      <td>0</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>2</td>\n",
+       "      <td>a</td>\n",
+       "      <td>a</td>\n",
+       "      <td>570.00</td>\n",
+       "      <td>11.00</td>\n",
+       "      <td>2007.00</td>\n",
+       "      <td>1</td>\n",
+       "      <td>13.00</td>\n",
+       "      <td>2010.00</td>\n",
+       "      <td>Jan,Apr,Jul,Oct</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>3</td>\n",
+       "      <td>a</td>\n",
+       "      <td>a</td>\n",
+       "      <td>14130.00</td>\n",
+       "      <td>12.00</td>\n",
+       "      <td>2006.00</td>\n",
+       "      <td>1</td>\n",
+       "      <td>14.00</td>\n",
+       "      <td>2011.00</td>\n",
+       "      <td>Jan,Apr,Jul,Oct</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>4</td>\n",
+       "      <td>c</td>\n",
+       "      <td>c</td>\n",
+       "      <td>620.00</td>\n",
+       "      <td>9.00</td>\n",
+       "      <td>2009.00</td>\n",
+       "      <td>0</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>5</td>\n",
+       "      <td>a</td>\n",
+       "      <td>a</td>\n",
+       "      <td>29910.00</td>\n",
+       "      <td>4.00</td>\n",
+       "      <td>2015.00</td>\n",
+       "      <td>0</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "   Store StoreType Assortment  CompetitionDistance  CompetitionOpenSinceMonth  \\\n",
+       "0      1         c          a              1270.00                       9.00   \n",
+       "1      2         a          a               570.00                      11.00   \n",
+       "2      3         a          a             14130.00                      12.00   \n",
+       "3      4         c          c               620.00                       9.00   \n",
+       "4      5         a          a             29910.00                       4.00   \n",
+       "\n",
+       "   CompetitionOpenSinceYear  Promo2  Promo2SinceWeek  Promo2SinceYear  \\\n",
+       "0                   2008.00       0              NaN              NaN   \n",
+       "1                   2007.00       1            13.00          2010.00   \n",
+       "2                   2006.00       1            14.00          2011.00   \n",
+       "3                   2009.00       0              NaN              NaN   \n",
+       "4                   2015.00       0              NaN              NaN   \n",
+       "\n",
+       "     PromoInterval  \n",
+       "0              NaN  \n",
+       "1  Jan,Apr,Jul,Oct  \n",
+       "2  Jan,Apr,Jul,Oct  \n",
+       "3              NaN  \n",
+       "4              NaN  "
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "# See first 5 rows of train\n",
+    "print(\"=== TRAIN ===\")\n",
+    "display(train.head())\n",
+    "\n",
+    "print(\"=== STORE ===\")\n",
+    "display(store.head())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "f7c82314-0862-4515-866d-c65be6e3b294",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Missing in train:\n",
+      "Store            0\n",
+      "DayOfWeek        0\n",
+      "Date             0\n",
+      "Sales            0\n",
+      "Customers        0\n",
+      "Open             0\n",
+      "Promo            0\n",
+      "StateHoliday     0\n",
+      "SchoolHoliday    0\n",
+      "dtype: int64\n",
+      "\n",
+      "Missing in store:\n",
+      "Store                          0\n",
+      "StoreType                      0\n",
+      "Assortment                     0\n",
+      "CompetitionDistance            3\n",
+      "CompetitionOpenSinceMonth    354\n",
+      "CompetitionOpenSinceYear     354\n",
+      "Promo2                         0\n",
+      "Promo2SinceWeek              544\n",
+      "Promo2SinceYear              544\n",
+      "PromoInterval                544\n",
+      "dtype: int64\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Find all missing values\n",
+    "print(\"Missing in train:\")\n",
+    "print(train.isnull().sum())\n",
+    "\n",
+    "print(\"\\nMissing in store:\")\n",
+    "print(store.isnull().sum())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "eec5f2e4-a544-4630-8083-8ab3914b56fa",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "StateHoliday values: ['none' 'public' 'easter' 'christmas']\n"
+     ]
+    }
+   ],
+   "source": [
+    "# StateHoliday has mixed '0' and 0 — fix it\n",
+    "train['StateHoliday'] = train['StateHoliday'].astype(str)\n",
+    "train['StateHoliday'] = train['StateHoliday'].replace('0', 'none')\n",
+    "train['StateHoliday'] = train['StateHoliday'].replace({'a': 'public',\n",
+    "                                                        'b': 'easter',\n",
+    "                                                        'c': 'christmas'})\n",
+    "\n",
+    "test['StateHoliday'] = test['StateHoliday'].astype(str)\n",
+    "test['StateHoliday'] = test['StateHoliday'].replace('0', 'none')\n",
+    "test['StateHoliday'] = test['StateHoliday'].replace({'a': 'public',\n",
+    "                                                      'b': 'easter',\n",
+    "                                                      'c': 'christmas'})\n",
+    "\n",
+    "print(\"StateHoliday values:\", train['StateHoliday'].unique())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "22a87bc8-9294-49b1-8d9e-6c9f7c5b49d3",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Missing in store after fix:\n",
+      "Store                        0\n",
+      "StoreType                    0\n",
+      "Assortment                   0\n",
+      "CompetitionDistance          0\n",
+      "CompetitionOpenSinceMonth    0\n",
+      "CompetitionOpenSinceYear     0\n",
+      "Promo2                       0\n",
+      "Promo2SinceWeek              0\n",
+      "Promo2SinceYear              0\n",
+      "PromoInterval                0\n",
+      "dtype: int64\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Fill missing competition distance with median\n",
+    "store['CompetitionDistance'].fillna(\n",
+    "    store['CompetitionDistance'].median(), inplace=True)\n",
+    "\n",
+    "# Fill missing competition open date with 0\n",
+    "store['CompetitionOpenSinceMonth'].fillna(0, inplace=True)\n",
+    "store['CompetitionOpenSinceYear'].fillna(0, inplace=True)\n",
+    "\n",
+    "# Fill missing promo2 info with 0 / 'None'\n",
+    "store['Promo2SinceWeek'].fillna(0, inplace=True)\n",
+    "store['Promo2SinceYear'].fillna(0, inplace=True)\n",
+    "store['PromoInterval'].fillna('None', inplace=True)\n",
+    "\n",
+    "print(\"Missing in store after fix:\")\n",
+    "print(store.isnull().sum())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "0b7d377d-ee67-4959-bcfb-b7a9d1b25eb8",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Train shape after cleaning: (844338, 18)\n",
+      "Test shape after merge    : (41088, 17)\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Merge store info into train and test\n",
+    "train = train.merge(store, on='Store', how='left')\n",
+    "test  = test.merge(store, on='Store', how='left')\n",
+    "\n",
+    "# Remove closed store rows from training data\n",
+    "train = train[train['Open'] == 1].copy()\n",
+    "\n",
+    "# Remove rows with 0 sales\n",
+    "train = train[train['Sales'] > 0].copy()\n",
+    "\n",
+    "print(\"Train shape after cleaning:\", train.shape)\n",
+    "print(\"Test shape after merge    :\", test.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "id": "bf4a8bad-36c6-4c25-9f0d-9be7429981c8",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Train date range: 2013-01-01 00:00:00 to 2015-07-31 00:00:00\n",
+      "Test date range : 2015-08-01 00:00:00 to 2015-09-17 00:00:00\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Convert Date from string to proper datetime\n",
+    "train['Date'] = pd.to_datetime(train['Date'])\n",
+    "test['Date']  = pd.to_datetime(test['Date'])\n",
+    "\n",
+    "print(\"Train date range:\", train['Date'].min(), \"to\", train['Date'].max())\n",
+    "print(\"Test date range :\", test['Date'].min(),  \"to\", test['Date'].max())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "id": "1c16b21f-1a35-48bb-95d4-d7916df9497b",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Saved! train_clean.csv and test_clean.csv are in your data folder\n"
+     ]
+    }
+   ],
+   "source": [
+    "train.to_csv('data/train_clean.csv', index=False)\n",
+    "test.to_csv('data/test_clean.csv', index=False)\n",
+    "\n",
+    "print(\"Saved! train_clean.csv and test_clean.csv are in your data folder\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "55c9c5b0-9809-42a6-857b-8ed4eaecf052",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.14.2"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
